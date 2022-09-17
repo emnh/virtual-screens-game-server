@@ -1,8 +1,34 @@
-var express = require('express');
-var parseurl = require('parseurl');
-var session = require('express-session');
+const express = require('express');
+const parseurl = require('parseurl');
+const session = require('express-session');
+const mysql = require('mysql');
+const http = require('http');
+const { Server } = require("socket.io");
 
-var app = express();
+const pool  = mysql.createPool({
+    connectionLimit : 10,
+    host            : 'localhost',
+    user            : 'root',
+    password        : '',
+    database        : 'virtual_screens'
+});
+
+pool.query('SELECT 1 + 1 AS solution', function (error, results, fields) {
+    if (error) throw error;
+    console.log('The solution is: ', results[0].solution);
+});
+// const con = mysql.createConnection({
+//   host: "localhost",
+//   user: "root",
+//   password: ""
+// });
+
+// con.connect(function(err) {
+//   if (err) throw err;
+//   console.log("Connected!");
+// });
+
+const app = express();
 
 app.use(session({
   secret: 'keyboard cat',
@@ -16,7 +42,7 @@ app.use(function (req, res, next) {
   };
 
   // get the url pathname
-  var pathname = parseurl(req).pathname;
+  const pathname = parseurl(req).pathname;
 
   // count the views
   req.session.views[pathname] = (req.session.views[pathname] || 0) + 1;
@@ -33,7 +59,21 @@ app.get('/bar', function (req, res, next) {
 });
 
 app.get('/', function (req, res, next) {
-    res.send('go to /foo or /bar');
+    res.sendFile(__dirname + '/index.html');
 });
 
-app.listen(3000);
+app.get('/index.js', function (req, res, next) {
+    res.sendFile(__dirname + '/index.js');
+});
+
+// app.listen(3000);
+const server = http.createServer(app);
+const io = new Server(server);
+
+io.on('connection', (socket) => {
+    console.log('a user connected');
+});
+
+server.listen(3000, () => {
+    console.log('listening on *:3000');
+});
