@@ -1,11 +1,39 @@
-const express = require('express')
-const app = express()
-const port = 3000
+var express = require('express');
+var parseurl = require('parseurl');
+var session = require('express-session');
 
-app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
+var app = express();
 
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
-})
+app.use(session({
+  secret: 'keyboard cat',
+  resave: false,
+  saveUninitialized: true
+}));
+
+app.use(function (req, res, next) {
+  if (!req.session.views) {
+    req.session.views = {}
+  };
+
+  // get the url pathname
+  var pathname = parseurl(req).pathname;
+
+  // count the views
+  req.session.views[pathname] = (req.session.views[pathname] || 0) + 1;
+
+  next();
+});
+
+app.get('/foo', function (req, res, next) {
+  res.send('you viewed this page ' + req.session.views['/foo'] + ' times')
+});
+
+app.get('/bar', function (req, res, next) {
+  res.send('you viewed this page ' + req.session.views['/bar'] + ' times')
+});
+
+app.get('/', function (req, res, next) {
+    res.send('go to /foo or /bar');
+});
+
+app.listen(3000);
